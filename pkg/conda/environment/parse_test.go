@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/khulnasoft/dep-parser/new/conda/environment"
+	"github.com/khulnasoft/dep-parser/pkg/conda/environment"
 	"github.com/khulnasoft/dep-parser/pkg/types"
 )
 
@@ -22,7 +22,7 @@ func TestParse(t *testing.T) {
 			name:  "happy path",
 			input: "testdata/happy.yaml",
 			want: environment.Packages{
-				Packages: []types.Package{
+				Packages: []types.Library{
 					{
 						Name: "_openmp_mutex",
 						Locations: types.Locations{
