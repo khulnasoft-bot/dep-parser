@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/aquasecurity/go-version/pkg/semver"
+	"github.com/khulnasoft/dep-parser/pkg/internal/semver"
 	"golang.org/x/xerrors"
 	"gopkg.in/yaml.v3"
 

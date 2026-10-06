@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/aquasecurity/go-version/pkg/version"
+	version "github.com/khulnasoft/dep-parser/pkg/internal/condaver"
 	"golang.org/x/xerrors"
 	"gopkg.in/yaml.v3"
 

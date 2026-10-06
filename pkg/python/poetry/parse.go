@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
-	version "github.com/aquasecurity/go-pep440-version"
+	version "github.com/khulnasoft/dep-parser/pkg/internal/pep440"
 	"golang.org/x/xerrors"
 
 	dio "github.com/khulnasoft/dep-parser/pkg/io"

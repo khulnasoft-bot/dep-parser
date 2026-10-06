@@ -4,8 +4,6 @@ go 1.26.0
 
 require (
 	github.com/BurntSushi/toml v1.4.0
-	github.com/aquasecurity/go-pep440-version v0.0.1
-	github.com/aquasecurity/go-version v0.0.1
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-retryablehttp v0.7.7
 	github.com/liamg/jfather v0.0.7
