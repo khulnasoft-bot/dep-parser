@@ -2,12 +2,14 @@ package binary
 
 import (
 	"debug/buildinfo"
+	"sort"
 	"strings"
 
 	"golang.org/x/xerrors"
 
 	dio "github.com/khulnasoft/dep-parser/pkg/io"
 	"github.com/khulnasoft/dep-parser/pkg/types"
+	"github.com/khulnasoft/dep-parser/pkg/utils"
 )
 
 var (
@@ -58,10 +60,15 @@ func (p *Parser) Parse(r dio.ReadSeekerAt) ([]types.Library, []types.Dependency,
 		}
 
 		libs = append(libs, types.Library{
+			ID:      utils.PackageID(mod.Path, mod.Version),
 			Name:    mod.Path,
 			Version: mod.Version,
 		})
 	}
+
+	// buildinfo reports modules in link order, which is not stable across
+	// builds, so sort to keep output deterministic.
+	sort.Sort(types.Libraries(libs))
 
 	return libs, nil, nil
 }

@@ -6,6 +6,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -58,4 +59,30 @@ func TestParse(t *testing.T) {
 			assert.Equal(t, v.want, got)
 		})
 	}
+}
+
+func TestParseIsDeterministic(t *testing.T) {
+	// The parser collects modules in a map, so the output order must be
+	// explicitly sorted. Without sorting this assertion fails intermittently.
+	first, _, err := NewParser().Parse(mustOpen(t, "testdata/gomod_many.sum"))
+	require.NoError(t, err)
+
+	for i := 0; i < 20; i++ {
+		got, _, err := NewParser().Parse(mustOpen(t, "testdata/gomod_many.sum"))
+		require.NoError(t, err)
+		require.Equal(t, first, got, "library order differs on run %d", i)
+	}
+
+	// and the order must actually be sorted
+	assert.IsIncreasing(t, lo.Map(first, func(l types.Library, _ int) string {
+		return l.ID
+	}))
+}
+
+func mustOpen(t *testing.T, path string) *os.File {
+	t.Helper()
+	f, err := os.Open(path)
+	require.NoError(t, err)
+	t.Cleanup(func() { f.Close() })
+	return f
 }

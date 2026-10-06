@@ -2,6 +2,7 @@ package sum
 
 import (
 	"bufio"
+	"sort"
 	"strings"
 
 	"golang.org/x/xerrors"
@@ -45,6 +46,10 @@ func (p *Parser) Parse(r dio.ReadSeekerAt) ([]types.Library, []types.Dependency,
 			Version: v,
 		})
 	}
+
+	// uniqueLibs is a map, so its iteration order is randomized. Sort to keep
+	// the output stable across runs.
+	sort.Sort(types.Libraries(libs))
 
 	return libs, nil, nil
 }
