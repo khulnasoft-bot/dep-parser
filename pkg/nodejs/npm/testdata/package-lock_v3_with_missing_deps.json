@@ -1,0 +1,21 @@
+{
+  "name": "node_v3_unresolvable_deps",
+  "version": "1.0.0",
+  "lockfileVersion": 3,
+  "requires": true,
+  "packages": {
+    "": {
+      "name": "node_v3_unresolvable_deps",
+      "version": "1.0.0",
+      "dependencies": {
+        "not-a-direct-dep": "^1.0.0"
+      }
+    },
+    "node_modules/with-missing-dep": {
+      "version": "1.0.0",
+      "dependencies": {
+        "not-installed": "^1.0.0"
+      }
+    }
+  }
+}

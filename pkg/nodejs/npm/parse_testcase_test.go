@@ -149,3 +149,15 @@ var (
 		{ID: "func1@1.0.0", DependsOn: []string{"debug@2.6.9"}},
 	}
 )
+
+// npmV3WithMissingDeps covers lockfiles that reference packages which are not
+// installed: the unresolvable direct and transitive dependencies are skipped.
+var npmV3WithMissingDeps = []types.Library{
+	{ID: "with-missing-dep@1.0.0", Name: "with-missing-dep", Version: "1.0.0", Indirect: true, ExternalReferences: []types.ExternalRef{{Type: types.RefOther, URL: ""}}, Locations: []types.Location{{StartLine: 14, EndLine: 19}}},
+}
+
+// npmV1WithMissingDeps covers a v1 lockfile whose `requires` entry has no
+// matching top-level dependency, which cannot be resolved.
+var npmV1WithMissingDeps = []types.Library{
+	{ID: "with-missing-dep@1.0.0", Name: "with-missing-dep", Version: "1.0.0", Indirect: true, ExternalReferences: []types.ExternalRef{{Type: types.RefOther, URL: "https://registry.npmjs.org/with-missing-dep/-/with-missing-dep-1.0.0.tgz"}}, Locations: []types.Location{{StartLine: 7, EndLine: 14}}},
+}

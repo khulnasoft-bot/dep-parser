@@ -1,16 +1,15 @@
 package core_deps
 
 import (
-	"github.com/liamg/jfather"
 	"io"
 	"strings"
 
+	"github.com/liamg/jfather"
 	"golang.org/x/xerrors"
 
 	dio "github.com/khulnasoft/dep-parser/pkg/io"
-	"github.com/khulnasoft/dep-parser/pkg/types"
-
 	"github.com/khulnasoft/dep-parser/pkg/log"
+	"github.com/khulnasoft/dep-parser/pkg/types"
 )
 
 type Parser struct{}

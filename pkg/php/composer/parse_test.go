@@ -1,11 +1,15 @@
 package composer
 
 import (
-	"github.com/khulnasoft/dep-parser/pkg/types"
+	"os"
+	"strings"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"os"
-	"testing"
+	"golang.org/x/xerrors"
+
+	"github.com/khulnasoft/dep-parser/pkg/types"
 )
 
 var (
@@ -169,3 +173,40 @@ func TestParse(t *testing.T) {
 		})
 	}
 }
+
+func TestParseUnresolvedDep(t *testing.T) {
+	// `php` and `ext-*` requirements are skipped, and a requirement with no
+	// matching entry in the lock file is dropped from the dependency list.
+	f, err := os.Open("testdata/composer_unresolved_dep.lock")
+	require.NoError(t, err)
+	defer f.Close()
+
+	gotLibs, gotDeps, err := NewParser().Parse(f)
+	require.NoError(t, err)
+
+	require.Len(t, gotLibs, 1)
+	assert.Equal(t, "vendor/lib", gotLibs[0].Name)
+
+	require.Len(t, gotDeps, 1)
+	assert.Equal(t, "vendor/lib@1.0.0", gotDeps[0].ID)
+	assert.Empty(t, gotDeps[0].DependsOn)
+}
+
+func TestParseReadError(t *testing.T) {
+	_, _, err := NewParser().Parse(failReader{})
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "read error")
+}
+
+func TestParseDecodeError(t *testing.T) {
+	_, _, err := NewParser().Parse(strings.NewReader("this is not valid {json}"))
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "decode error")
+}
+
+// failReader fails on Read so the io.ReadAll error path is exercised.
+type failReader struct{}
+
+func (failReader) Read([]byte) (int, error)          { return 0, xerrors.New("read boom") }
+func (failReader) Seek(int64, int) (int64, error)    { return 0, nil }
+func (failReader) ReadAt([]byte, int64) (int, error) { return 0, nil }

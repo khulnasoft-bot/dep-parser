@@ -222,3 +222,57 @@ func Test_parsePackage(t *testing.T) {
 
 	}
 }
+
+func TestParseDecodeError(t *testing.T) {
+	_, _, err := NewParser().Parse(strings.NewReader("\tnot: [valid: yaml"))
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "decode error")
+}
+
+func TestParseUnknownLockfileVersion(t *testing.T) {
+	// an unrecognized lockfile version yields no libraries rather than an error
+	tests := []struct {
+		name string
+		body string
+	}{
+		{name: "unparsable version string", body: "lockfileVersion: 'not-a-number'\npackages: {}\n"},
+		{name: "unexpected version type", body: "lockfileVersion:\n  nested: true\npackages: {}\n"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, deps, err := NewParser().Parse(strings.NewReader(tt.body))
+			require.NoError(t, err)
+			assert.Empty(t, got)
+			assert.Empty(t, deps)
+		})
+	}
+}
+
+func TestParseLockfileVersion(t *testing.T) {
+	tests := []struct {
+		name string
+		in   LockFile
+		want float64
+	}{
+		{name: "numeric version", in: LockFile{LockfileVersion: float64(5)}, want: 5},
+		{name: "string version", in: LockFile{LockfileVersion: "6.0"}, want: 6},
+		{name: "unparsable string version", in: LockFile{LockfileVersion: "six"}, want: -1},
+		{name: "missing version", in: LockFile{}, want: -1},
+		{name: "unexpected type", in: LockFile{LockfileVersion: []string{"6"}}, want: -1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, parseLockfileVersion(tt.in))
+		})
+	}
+}
+
+func TestIsIndirectLib(t *testing.T) {
+	direct := map[string]interface{}{"debug": "2.6.9"}
+
+	assert.False(t, isIndirectLib("debug", direct))
+	assert.True(t, isIndirectLib("ms", direct))
+	assert.True(t, isIndirectLib("debug", nil))
+}

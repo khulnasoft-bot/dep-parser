@@ -133,3 +133,97 @@ func TestModuleID(t *testing.T) {
 		})
 	}
 }
+
+func TestLessThan117(t *testing.T) {
+	tests := []struct {
+		name string
+		ver  string
+		want bool
+	}{
+		{name: "1.16", ver: "1.16", want: true},
+		{name: "1.15", ver: "1.15", want: true},
+		{name: "1.17", ver: "1.17", want: false},
+		{name: "1.21", ver: "1.21", want: false},
+		{name: "2.0", ver: "2.0", want: false},
+		{name: "patch version", ver: "1.16.15", want: false},
+		{name: "no minor", ver: "1", want: false},
+		{name: "non-numeric major", ver: "x.16", want: false},
+		{name: "non-numeric minor", ver: "1.x", want: false},
+		{name: "empty", ver: "", want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, lessThan117(tt.ver))
+		})
+	}
+}
+
+func TestResolveVCSUrl(t *testing.T) {
+	tests := []struct {
+		name       string
+		modulePath string
+		want       string
+	}{
+		{
+			name:       "github.com",
+			modulePath: "github.com/khulnasoft/dep-parser",
+			want:       "https://github.com/khulnasoft/dep-parser",
+		},
+		{
+			name:       "github.com with major version suffix",
+			modulePath: "github.com/khulnasoft/dep-parser/v2",
+			want:       "https://github.com/khulnasoft/dep-parser",
+		},
+		{
+			name:       "gopkg.in with user",
+			modulePath: "gopkg.in/user/pkg.v3",
+			want:       "https://github.com/user/pkg",
+		},
+		{
+			name:       "gopkg.in without user",
+			modulePath: "gopkg.in/pkg.v3",
+			want:       "https://github.com/go-pkg/pkg",
+		},
+		{
+			name:       "unrecognized host",
+			modulePath: "golang.org/x/mod",
+			want:       "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, resolveVCSUrl(tt.modulePath))
+		})
+	}
+}
+
+func TestGetExternalRefs(t *testing.T) {
+	tests := []struct {
+		name string
+		path string
+		want []types.ExternalRef
+	}{
+		{
+			name: "known VCS host",
+			path: "github.com/khulnasoft/dep-parser",
+			want: []types.ExternalRef{
+				{Type: types.RefVCS, URL: "https://github.com/khulnasoft/dep-parser"},
+			},
+		},
+		{
+			name: "unknown host",
+			path: "golang.org/x/mod",
+			want: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p, ok := NewParser(false).(*Parser)
+			require.True(t, ok)
+			assert.Equal(t, tt.want, p.GetExternalRefs(tt.path))
+		})
+	}
+}

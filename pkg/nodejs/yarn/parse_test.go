@@ -337,6 +337,11 @@ func TestParse(t *testing.T) {
 			file: "testdata/yarn_with_bad_protocol.lock",
 			want: yarnBadProtocol,
 		},
+		{
+			name: "yarn v3 with metadata block",
+			file: "testdata/yarn_v3_with_metadata.lock",
+			want: yarnV3WithMetadata,
+		},
 	}
 
 	for _, tt := range tests {
@@ -387,4 +392,166 @@ func sortLocations(locs []types.Location) {
 	sort.Slice(locs, func(i, j int) bool {
 		return locs[i].StartLine < locs[j].StartLine
 	})
+}
+
+// yarnV3WithMetadata covers a yarn v3 lockfile whose leading metadata block
+// carries no library and must be skipped.
+var yarnV3WithMetadata = []types.Library{
+	{ID: "lodash@4.17.21", Name: "lodash", Version: "4.17.21", Locations: []types.Location{{StartLine: 11, EndLine: 13}}},
+}
+
+func TestGetVersion(t *testing.T) {
+	tests := []struct {
+		name    string
+		target  string
+		want    string
+		wantErr bool
+	}{
+		{name: "quoted version", target: `version "2.0.6"`, want: "2.0.6"},
+		{name: "unquoted version", target: `version 2.0.6`, want: "2.0.6"},
+		{name: "empty version", target: `version`, wantErr: true},
+		{name: "no version keyword", target: `resolved "https://example.com"`, wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := getVersion(tt.target)
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.ErrorContains(t, err, "failed to parse version")
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestValidAndIgnoreProtocol(t *testing.T) {
+	for _, proto := range []string{"npm", ""} {
+		assert.True(t, validProtocol(proto), proto)
+	}
+	assert.False(t, validProtocol("git"))
+	assert.False(t, validProtocol("https"))
+
+	for _, proto := range []string{"workspace", "patch", "file", "link", "portal", "github", "git", "git+ssh", "git+http", "git+https", "git+file"} {
+		assert.True(t, ignoreProtocol(proto), proto)
+	}
+	assert.False(t, ignoreProtocol("npm"))
+	assert.False(t, ignoreProtocol(""))
+}
+
+func TestParseDependency(t *testing.T) {
+	got, err := parseDependency(`    chalk "^2.0.1"`)
+	require.NoError(t, err)
+	assert.Equal(t, "chalk@^2.0.1", got)
+
+	// not a dependency line
+	_, err = parseDependency(`  version "2.0.6"`)
+	require.Error(t, err)
+}
+
+func TestParseResults(t *testing.T) {
+	patternIDs := map[string]string{
+		"debug@^2.6.9": "debug@2.6.9",
+		"ms@2.0.0":     "ms@2.0.0",
+	}
+
+	got := parseResults(patternIDs, map[string][]string{
+		"debug@2.6.9": {"ms@2.0.0"},
+	})
+
+	assert.Equal(t, []types.Dependency{
+		{ID: "debug@2.6.9", DependsOn: []string{"ms@2.0.0"}},
+	}, got)
+}
+
+func TestScanBlocks(t *testing.T) {
+	tests := []struct {
+		name       string
+		input      string
+		atEOF      bool
+		wantAdvace int
+		wantToken  string
+	}{
+		{name: "newline terminated blocks", input: "a\nb\n\nc\n\n", wantAdvace: 5, wantToken: "a\nb"},
+		{name: "CRLF terminated blocks", input: "a\r\nb\r\n\r\nc\r\n", wantAdvace: 8, wantToken: "a\r\nb"},
+		{name: "final unterminated block at EOF", input: "last", atEOF: true, wantAdvace: 4, wantToken: "last"},
+		{name: "empty at EOF", input: "", atEOF: true, wantAdvace: 0},
+		{name: "request more data", input: "partial", wantAdvace: 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			advance, token, err := scanBlocks([]byte(tt.input), tt.atEOF)
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantAdvace, advance)
+			assert.Equal(t, tt.wantToken, string(token))
+		})
+	}
+}
+
+func TestLineScanner(t *testing.T) {
+	s := NewLineScanner(strings.NewReader("one\ntwo\nthree\n"))
+
+	// nothing consumed yet
+	assert.Equal(t, 0, s.LineNum(1))
+
+	require.True(t, s.Scan())
+	assert.Equal(t, "one", s.Text())
+	assert.Equal(t, 1, s.LineNum(1))
+
+	require.True(t, s.Scan())
+	require.True(t, s.Scan())
+	assert.Equal(t, "three", s.Text())
+	assert.Equal(t, 3, s.LineNum(1))
+
+	assert.False(t, s.Scan())
+	assert.Equal(t, 3, s.LineNum(1))
+}
+
+func TestParseScannerError(t *testing.T) {
+	// A single block larger than bufio.Scanner's max token size makes the
+	// scanner fail, which surfaces as a scan error from Parse.
+	big := "\"pkg@^1.0.0\":\n  version \"1.0.0\"\n" + strings.Repeat("x", 128*1024)
+
+	_, _, err := NewParser().Parse(strings.NewReader(big))
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "failed to scan yarn.lock")
+}
+
+func TestGetDependencyWithUnsupportedProtocol(t *testing.T) {
+	// a non-npm protocol yields empty name and version without an error, so
+	// the caller can tell "ignored" apart from "malformed"
+	name, version, err := getDependency(`    lib "git+https://example.com/lib.git"`)
+	require.NoError(t, err)
+	assert.Empty(t, name)
+	assert.Empty(t, version)
+}
+
+func TestParseSkipsBlocksWithoutName(t *testing.T) {
+	// A block that yields no library name (comments and blank content) is
+	// skipped without failing the whole file.
+	lock := "# just a comment\n\n\"lodash@^4.17.21\":\n  version \"4.17.21\"\n"
+
+	got, _, err := NewParser().Parse(strings.NewReader(lock))
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t, "lodash@4.17.21", got[0].ID)
+}
+
+func TestParseCRLF(t *testing.T) {
+	// CRLF-terminated blocks must be split correctly. The file is built in
+	// memory rather than checked in as testdata, because git normalizes line
+	// endings in text files.
+	lock := strings.ReplaceAll(
+		"asap@~2.0.6:\n  version\n\njquery@^3.4.1:\n  version \"3.4.1\"\n",
+		"\n", "\r\n")
+
+	got, _, err := NewParser().Parse(strings.NewReader(lock))
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+	assert.Equal(t, "jquery@3.4.1", got[0].ID)
+	assert.Equal(t, "3.4.1", got[0].Version)
+	assert.Equal(t, types.Location{StartLine: 4, EndLine: 5}, got[0].Locations[0])
 }

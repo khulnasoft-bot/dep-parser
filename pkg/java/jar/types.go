@@ -2,8 +2,10 @@ package jar
 
 import (
 	"fmt"
-	"github.com/khulnasoft/dep-parser/pkg/types"
+
 	"golang.org/x/xerrors"
+
+	"github.com/khulnasoft/dep-parser/pkg/types"
 )
 
 var ArtifactNotFoundErr = xerrors.New("no artifact found")

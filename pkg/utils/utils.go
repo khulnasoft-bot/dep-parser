@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/khulnasoft/dep-parser/pkg/types"
 	"golang.org/x/exp/maps"
+
+	"github.com/khulnasoft/dep-parser/pkg/types"
 )
 
 func UniqueStrings(ss []string) []string {

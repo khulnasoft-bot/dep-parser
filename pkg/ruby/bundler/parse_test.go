@@ -186,7 +186,7 @@ func TestParser_Parse(t *testing.T) {
 			require.NoError(t, err)
 			defer f.Close()
 
-			p := &bundler.Parser{}
+			p := bundler.NewParser()
 			gotLibs, gotDeps, err := p.Parse(f)
 			if !tt.wantErr(t, err, fmt.Sprintf("Parse(%v)", tt.file)) {
 				return
@@ -195,4 +195,8 @@ func TestParser_Parse(t *testing.T) {
 			assert.Equalf(t, tt.wantDeps, gotDeps, "Parse(%v)", tt.file)
 		})
 	}
+}
+
+func TestNewParser(t *testing.T) {
+	require.NotNil(t, bundler.NewParser())
 }

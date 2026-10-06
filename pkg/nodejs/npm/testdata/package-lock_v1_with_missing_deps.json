@@ -1,0 +1,16 @@
+{
+  "name": "node_v1_unresolvable_deps",
+  "version": "1.0.0",
+  "lockfileVersion": 1,
+  "requires": true,
+  "dependencies": {
+    "with-missing-dep": {
+      "version": "1.0.0",
+      "resolved": "https://registry.npmjs.org/with-missing-dep/-/with-missing-dep-1.0.0.tgz",
+      "integrity": "sha512-placeholder",
+      "requires": {
+        "not-installed": "^1.0.0"
+      }
+    }
+  }
+}

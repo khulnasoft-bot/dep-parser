@@ -3,13 +3,13 @@ package pom
 import (
 	"encoding/xml"
 	"fmt"
-	"golang.org/x/xerrors"
 	"io"
 	"maps"
 	"reflect"
 	"strings"
 
 	"github.com/samber/lo"
+	"golang.org/x/xerrors"
 
 	"github.com/khulnasoft/dep-parser/pkg/types"
 	"github.com/khulnasoft/dep-parser/pkg/utils"

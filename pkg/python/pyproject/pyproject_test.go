@@ -52,7 +52,7 @@ func TestParser_Parse(t *testing.T) {
 			require.NoError(t, err)
 			defer f.Close()
 
-			p := &pyproject.Parser{}
+			p := pyproject.NewParser()
 			got, err := p.Parse(f)
 			if !tt.wantErr(t, err, fmt.Sprintf("Parse(%v)", tt.file)) {
 				return
@@ -60,4 +60,8 @@ func TestParser_Parse(t *testing.T) {
 			assert.Equalf(t, tt.want, got, "Parse(%v)", tt.file)
 		})
 	}
+}
+
+func TestNewParser(t *testing.T) {
+	require.NotNil(t, pyproject.NewParser())
 }

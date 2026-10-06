@@ -3,16 +3,17 @@ package yarn
 import (
 	"bufio"
 	"bytes"
-	"github.com/khulnasoft/dep-parser/pkg/log"
 	"io"
 	"regexp"
 	"strings"
 
-	dio "github.com/khulnasoft/dep-parser/pkg/io"
-	"github.com/khulnasoft/dep-parser/pkg/types"
-	"github.com/khulnasoft/dep-parser/pkg/utils"
 	"github.com/samber/lo"
 	"golang.org/x/xerrors"
+
+	dio "github.com/khulnasoft/dep-parser/pkg/io"
+	"github.com/khulnasoft/dep-parser/pkg/log"
+	"github.com/khulnasoft/dep-parser/pkg/types"
+	"github.com/khulnasoft/dep-parser/pkg/utils"
 )
 
 var (

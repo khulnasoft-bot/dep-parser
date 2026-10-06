@@ -1,10 +1,12 @@
 package swift
 
 import (
-	"github.com/khulnasoft/dep-parser/pkg/types"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/khulnasoft/dep-parser/pkg/types"
 )
 
 func TestParser_Parse(t *testing.T) {

@@ -6,18 +6,20 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
-	dio "github.com/khulnasoft/dep-parser/pkg/io"
-	"github.com/khulnasoft/dep-parser/pkg/log"
-	"github.com/khulnasoft/dep-parser/pkg/types"
-	"github.com/samber/lo"
-	"go.uber.org/zap"
-	"golang.org/x/xerrors"
 	"io"
 	"os"
 	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/samber/lo"
+	"go.uber.org/zap"
+	"golang.org/x/xerrors"
+
+	dio "github.com/khulnasoft/dep-parser/pkg/io"
+	"github.com/khulnasoft/dep-parser/pkg/log"
+	"github.com/khulnasoft/dep-parser/pkg/types"
 )
 
 var (

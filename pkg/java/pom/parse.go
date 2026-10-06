@@ -12,12 +12,12 @@ import (
 	"sort"
 	"strings"
 
-	dio "github.com/khulnasoft/dep-parser/pkg/io"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/samber/lo"
 	"golang.org/x/net/html/charset"
 	"golang.org/x/xerrors"
 
+	dio "github.com/khulnasoft/dep-parser/pkg/io"
 	"github.com/khulnasoft/dep-parser/pkg/log"
 	"github.com/khulnasoft/dep-parser/pkg/types"
 	"github.com/khulnasoft/dep-parser/pkg/utils"

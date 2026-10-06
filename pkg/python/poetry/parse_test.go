@@ -3,6 +3,7 @@ package poetry
 import (
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -126,4 +127,77 @@ func TestParseDependency(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestNewParser(t *testing.T) {
+	require.NotNil(t, NewParser())
+}
+
+func TestParseDecodeError(t *testing.T) {
+	_, _, err := NewParser().Parse(strings.NewReader("this is not = valid toml [[["))
+	require.Error(t, err)
+	assert.ErrorContains(t, err, "failed to decode poetry.lock")
+}
+
+func TestParseDependencyErrors(t *testing.T) {
+	t.Run("unparsable version", func(t *testing.T) {
+		_, err := parseDependency("test", ">=1.0.0", map[string][]string{"test": {"not-a-version"}})
+		require.Error(t, err)
+		assert.ErrorContains(t, err, "failed to match version for test")
+		assert.ErrorContains(t, err, "python version error")
+	})
+
+	t.Run("unparsable constraint", func(t *testing.T) {
+		_, err := parseDependency("test", "not-a-constraint", map[string][]string{"test": {"1.0.0"}})
+		require.Error(t, err)
+		assert.ErrorContains(t, err, "python constraint error")
+	})
+
+	t.Run("no version satisfies the constraint", func(t *testing.T) {
+		_, err := parseDependency("test", ">=9.0.0", map[string][]string{"test": {"1.0.0", "2.0.0"}})
+		require.Error(t, err)
+		assert.ErrorContains(t, err, "no matched version found")
+	})
+
+	t.Run("version range of an unsupported shape", func(t *testing.T) {
+		// a version range that is neither a string nor a table leaves the
+		// constraint empty, which fails to parse
+		_, err := parseDependency("test", 42, map[string][]string{"test": {"1.0.0"}})
+		require.Error(t, err)
+		assert.ErrorContains(t, err, "python constraint error")
+	})
+}
+
+func TestMatchVersion(t *testing.T) {
+	tests := []struct {
+		name       string
+		version    string
+		constraint string
+		want       bool
+		wantErr    bool
+	}{
+		{name: "satisfied", version: "1.2.3", constraint: ">=1.0.0", want: true},
+		{name: "not satisfied", version: "0.9.0", constraint: ">=1.0.0", want: false},
+		{name: "exact match", version: "1.2.3", constraint: "==1.2.3", want: true},
+		{name: "invalid version", version: "not-a-version", constraint: ">=1.0.0", wantErr: true},
+		{name: "invalid constraint", version: "1.2.3", constraint: ">>>", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := matchVersion(tt.version, tt.constraint)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestNormalizePkgName(t *testing.T) {
+	assert.Equal(t, "flask", normalizePkgName("Flask"))
+	assert.Equal(t, "zope-interface", normalizePkgName("zope.interface"))
+	assert.Equal(t, "my-package", normalizePkgName("my_package"))
 }

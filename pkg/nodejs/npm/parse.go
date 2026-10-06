@@ -2,13 +2,13 @@ package npm
 
 import (
 	"fmt"
-	"github.com/samber/lo"
 	"io"
 	"path"
 	"sort"
 	"strings"
 
 	"github.com/liamg/jfather"
+	"github.com/samber/lo"
 	"golang.org/x/exp/maps"
 	"golang.org/x/xerrors"
 

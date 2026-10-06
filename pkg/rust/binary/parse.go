@@ -2,12 +2,12 @@
 package binary
 
 import (
+	rustaudit "github.com/microsoft/go-rustaudit"
 	"golang.org/x/xerrors"
 
 	dio "github.com/khulnasoft/dep-parser/pkg/io"
 	"github.com/khulnasoft/dep-parser/pkg/types"
 	"github.com/khulnasoft/dep-parser/pkg/utils"
-	rustaudit "github.com/microsoft/go-rustaudit"
 )
 
 var (

@@ -5,11 +5,11 @@ import (
 	"sort"
 
 	"github.com/BurntSushi/toml"
-	dio "github.com/khulnasoft/dep-parser/pkg/io"
-	"github.com/khulnasoft/dep-parser/pkg/types"
-
 	"golang.org/x/exp/maps"
 	"golang.org/x/xerrors"
+
+	dio "github.com/khulnasoft/dep-parser/pkg/io"
+	"github.com/khulnasoft/dep-parser/pkg/types"
 )
 
 type primitiveManifest struct {

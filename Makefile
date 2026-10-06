@@ -5,7 +5,7 @@ LINT_CMD := $(TEMP_DIR)/golangci-lint run --tests=false
 GOIMPORTS_CMD := $(TEMP_DIR)/gosimports -local github.com/khulnasoft
 
 # Tool versions #################################
-GOLANGCILINT_VERSION := v1.55.1
+GOLANGCILINT_VERSION := v2.14.0
 GOSIMPORTS_VERSION := v0.3.8
 GOLICENSES_VERSION := v5.0.1
 
@@ -65,10 +65,13 @@ test: unit ## Run all tests (currently unit, integration, linux compare, and cli
 bootstrap: $(TEMP_DIR) bootstrap-go bootstrap-tools ## Download and install all tooling dependencies (+ prep tooling in the ./tmp dir)
 	$(call title,Bootstrapping dependencies)
 
+# Note: golangci-lint is built from source instead of being downloaded as a release binary so
+# that its internal go/types always matches the local toolchain; a release binary built with an
+# older Go cannot read this module's export data and reports bogus typecheck errors.
 .PHONY: bootstrap-tools
 bootstrap-tools: $(TEMP_DIR)
-	GO111MODULE=on GOBIN=$(realpath $(TEMP_DIR)) go get -u golang.org/x/perf/cmd/benchstat
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(TEMP_DIR)/ $(GOLANGCILINT_VERSION)
+	GOBIN=$(realpath $(TEMP_DIR)) go install golang.org/x/perf/cmd/benchstat@latest
+	GOBIN=$(realpath $(TEMP_DIR)) go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCILINT_VERSION)
 	curl -sSfL https://raw.githubusercontent.com/khulnasoft/go-licenses/master/golicenses.sh | sh -s -- -b $(TEMP_DIR)/ $(GOLICENSES_VERSION)
 	GOBIN="$(realpath $(TEMP_DIR))" go install github.com/rinchsan/gosimports/cmd/gosimports@$(GOSIMPORTS_VERSION)
 

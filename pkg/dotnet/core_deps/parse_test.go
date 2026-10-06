@@ -30,6 +30,13 @@ func TestParse(t *testing.T) {
 			want: nil,
 		},
 		{
+			file: "testdata/InvalidLibraries.deps.json",
+			want: []types.Library{
+				{Name: "PACKAGE.CASE", Version: "1.2.3", Locations: []types.Location{{StartLine: 27, EndLine: 29}}},
+				{Name: "Newtonsoft.Json", Version: "13.0.1", Locations: []types.Location{{StartLine: 30, EndLine: 32}}},
+			},
+		},
+		{
 			file:    "testdata/InvalidJson.deps.json",
 			wantErr: "failed to decode .deps.json file: EOF",
 		},

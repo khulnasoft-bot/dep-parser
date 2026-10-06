@@ -1,14 +1,16 @@
 package swift
 
 import (
-	dio "github.com/khulnasoft/dep-parser/pkg/io"
-	"github.com/khulnasoft/dep-parser/pkg/types"
-	"github.com/khulnasoft/dep-parser/pkg/utils"
-	"github.com/liamg/jfather"
-	"golang.org/x/xerrors"
 	"io"
 	"sort"
 	"strings"
+
+	"github.com/liamg/jfather"
+	"golang.org/x/xerrors"
+
+	dio "github.com/khulnasoft/dep-parser/pkg/io"
+	"github.com/khulnasoft/dep-parser/pkg/types"
+	"github.com/khulnasoft/dep-parser/pkg/utils"
 )
 
 // Parser is a parser for Package.resolved files

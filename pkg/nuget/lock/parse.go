@@ -4,7 +4,6 @@ import (
 	"io"
 
 	"github.com/liamg/jfather"
-
 	"golang.org/x/xerrors"
 
 	dio "github.com/khulnasoft/dep-parser/pkg/io"

@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"io"
 
+	"golang.org/x/xerrors"
+
 	"github.com/khulnasoft/dep-parser/pkg/types"
 	"github.com/khulnasoft/dep-parser/pkg/utils"
-	"golang.org/x/xerrors"
 )
 
 type packageJSON struct {

@@ -5,13 +5,13 @@ import (
 	"strings"
 
 	"github.com/BurntSushi/toml"
+	version "github.com/aquasecurity/go-pep440-version"
 	"golang.org/x/xerrors"
 
 	dio "github.com/khulnasoft/dep-parser/pkg/io"
 	"github.com/khulnasoft/dep-parser/pkg/log"
 	"github.com/khulnasoft/dep-parser/pkg/types"
 	"github.com/khulnasoft/dep-parser/pkg/utils"
-	version "github.com/aquasecurity/go-pep440-version"
 )
 
 type Lockfile struct {

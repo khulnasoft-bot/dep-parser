@@ -2,10 +2,10 @@ package conan
 
 import (
 	"fmt"
-	"github.com/liamg/jfather"
 	"io"
 	"strings"
 
+	"github.com/liamg/jfather"
 	"golang.org/x/exp/slices"
 	"golang.org/x/xerrors"
 

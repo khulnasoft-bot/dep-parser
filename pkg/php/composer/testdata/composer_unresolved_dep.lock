@@ -1,0 +1,16 @@
+{
+    "packages": [
+        {
+            "name": "vendor/lib",
+            "version": "1.0.0",
+            "license": [
+                "MIT"
+            ],
+            "require": {
+                "php": ">=7.2",
+                "ext-json": "*",
+                "not-in-the-lock-file": "^1.0.0"
+            }
+        }
+    ]
+}

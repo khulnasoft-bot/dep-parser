@@ -4,10 +4,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/khulnasoft/dep-parser/pkg/swift/cocoapods"
-	"github.com/khulnasoft/dep-parser/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/khulnasoft/dep-parser/pkg/swift/cocoapods"
+	"github.com/khulnasoft/dep-parser/pkg/types"
 )
 
 func TestParse(t *testing.T) {

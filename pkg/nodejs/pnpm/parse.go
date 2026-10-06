@@ -5,13 +5,13 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/aquasecurity/go-version/pkg/semver"
 	"golang.org/x/xerrors"
 	"gopkg.in/yaml.v3"
 
 	dio "github.com/khulnasoft/dep-parser/pkg/io"
 	"github.com/khulnasoft/dep-parser/pkg/log"
 	"github.com/khulnasoft/dep-parser/pkg/types"
-	"github.com/aquasecurity/go-version/pkg/semver"
 )
 
 type PackageResolution struct {
