@@ -88,3 +88,29 @@ func TestDependenciesSort(t *testing.T) {
 	sort.Sort(deps)
 	assert.Equal(t, Dependencies{{ID: "a"}, {ID: "b", DependsOn: []string{"c"}}}, deps)
 }
+
+func TestRelationshipRank(t *testing.T) {
+	assert.Equal(t, 0, relationshipRank(RelationshipRoot))
+	assert.Equal(t, 1, relationshipRank(RelationshipWorkspace))
+	assert.Equal(t, 2, relationshipRank(RelationshipDirect))
+	assert.Equal(t, 3, relationshipRank(RelationshipIndirect))
+	assert.Equal(t, 4, relationshipRank(RelationshipUnknown))
+	assert.Equal(t, 4, relationshipRank(""))
+}
+
+func TestPackagesSort(t *testing.T) {
+	pkgs := Packages{
+		{Name: "b", Version: "1.0", Relationship: RelationshipDirect},
+		{Name: "a", Version: "1.0", Relationship: RelationshipDirect},
+		{Name: "a", Version: "1.0", Relationship: RelationshipRoot},
+	}
+	sort.Sort(pkgs)
+	assert.Equal(t, RelationshipRoot, pkgs[0].Relationship)
+	assert.Equal(t, "a", pkgs[1].Name)
+	assert.Equal(t, "b", pkgs[2].Name)
+}
+
+func TestUserError(t *testing.T) {
+	e := &UserError{Message: "boom"}
+	assert.Equal(t, "boom", e.Error())
+}

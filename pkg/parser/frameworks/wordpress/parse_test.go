@@ -1,0 +1,48 @@
+package wordpress
+
+import (
+	"os"
+	"path"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/khulnasoft/dep-parser/pkg/types"
+)
+
+func TestParseWordPress(t *testing.T) {
+	tests := []struct {
+		file    string // Test input file
+		want    types.Package
+		wantErr string
+	}{
+		{
+			file: "testdata/version.php",
+			want: types.Package{
+				Name:    "wordpress",
+				Version: "4.9.4-alpha",
+			},
+		},
+		{
+			file:    "testdata/versionFail.php",
+			wantErr: "version.php could not be parsed",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(path.Base(tt.file), func(t *testing.T) {
+			f, err := os.Open(tt.file)
+			require.NoError(t, err)
+
+			got, err := Parse(f)
+			if tt.wantErr != "" {
+				require.ErrorContains(t, err, tt.wantErr)
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
