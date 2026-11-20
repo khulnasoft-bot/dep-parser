@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"os"
+	"path/filepath"
+	"sort"
 
 	"github.com/khulnasoft/dep-parser/pkg/parser/c/conan"
 	"github.com/khulnasoft/dep-parser/pkg/parser/conda/meta"
@@ -41,6 +44,7 @@ import (
 	sbtlock "github.com/khulnasoft/dep-parser/pkg/parser/sbt/lockfile"
 	"github.com/khulnasoft/dep-parser/pkg/parser/swift/cocoapods"
 	"github.com/khulnasoft/dep-parser/pkg/parser/swift/swift"
+	"github.com/khulnasoft/dep-parser/pkg/version/app"
 	xio "github.com/khulnasoft/dep-parser/pkg/x/io"
 )
 
@@ -197,75 +201,105 @@ type output struct {
 }
 
 func main() {
-	lang := flag.String("lang", "", "parser to use (e.g. nodejs-npm, python-pyproject, golang-mod)")
-	flag.Parse()
+	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
+}
 
-	args := flag.Args()
-	if len(args) == 0 {
-		fmt.Fprintf(os.Stderr, "Usage: dep-parser [-lang <parser>] <file>\n")
-		fmt.Fprintf(os.Stderr, "Available parsers:\n")
-		for name := range parserRegistry {
-			fmt.Fprintf(os.Stderr, "  %s\n", name)
+func run(args []string, stdout, stderr io.Writer) int {
+	fs := flag.NewFlagSet("dep-parser", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	lang := fs.String("lang", "", "parser to use (e.g. nodejs-npm, python-pyproject, golang-mod)")
+	version := fs.Bool("version", false, "print version and exit")
+	if err := fs.Parse(args); err != nil {
+		return 2
+	}
+
+	if *version {
+		writef(stdout, "%s\n", app.Version())
+		return 0
+	}
+
+	rest := fs.Args()
+	if len(rest) == 0 {
+		writef(stderr, "Usage: dep-parser [-lang <parser>] <file>\n")
+		writef(stderr, "Available parsers:\n")
+		for _, name := range parserNames() {
+			writef(stderr, "  %s\n", name)
 		}
-		os.Exit(1)
+		return 1
 	}
 
-	filePath := args[0]
-	f, err := os.Open(filePath)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error opening %s: %v\n", filePath, err)
-		os.Exit(1)
-	}
-	defer func() {
-		if err := f.Close(); err != nil {
-			fmt.Fprintf(os.Stderr, "error closing %s: %v\n", filePath, err)
-		}
-	}()
-
-	rsa, err := xio.NewReadSeekerAt(f)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error wrapping reader: %v\n", err)
-		os.Exit(1)
-	}
+	filePath := rest[0]
 
 	var parse parseFunc
 	if *lang != "" {
 		var ok bool
 		parse, ok = parserRegistry[*lang]
 		if !ok {
-			fmt.Fprintf(os.Stderr, "unknown parser: %s\n", *lang)
-			fmt.Fprintf(os.Stderr, "Available parsers:\n")
-			for name := range parserRegistry {
-				fmt.Fprintf(os.Stderr, "  %s\n", name)
+			writef(stderr, "unknown parser: %s\n", *lang)
+			writef(stderr, "Available parsers:\n")
+			for _, name := range parserNames() {
+				writef(stderr, "  %s\n", name)
 			}
-			os.Exit(1)
+			return 1
 		}
 	} else {
 		parse = autoSelect(filePath)
 	}
 	if parse == nil {
-		fmt.Fprintf(os.Stderr, "could not auto-select parser for %s\n", filePath)
-		fmt.Fprintf(os.Stderr, "Use -lang to specify a parser explicitly.\n")
-		os.Exit(1)
+		writef(stderr, "could not auto-select parser for %s\n", filePath)
+		writef(stderr, "Use -lang to specify a parser explicitly.\n")
+		return 1
+	}
+
+	f, err := os.Open(filePath)
+	if err != nil {
+		writef(stderr, "error opening %s: %v\n", filePath, err)
+		return 1
+	}
+	defer func() {
+		if err := f.Close(); err != nil {
+			writef(stderr, "error closing %s: %v\n", filePath, err)
+		}
+	}()
+
+	rsa, err := xio.NewReadSeekerAt(f)
+	if err != nil {
+		writef(stderr, "error wrapping reader: %v\n", err)
+		return 1
 	}
 
 	ctx := context.Background()
 	pkgs, deps, err := parse(ctx, rsa)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error parsing %s: %v\n", filePath, err)
-		os.Exit(1)
+		writef(stderr, "error parsing %s: %v\n", filePath, err)
+		return 1
 	}
 
-	enc := json.NewEncoder(os.Stdout)
+	enc := json.NewEncoder(stdout)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(output{Packages: pkgs, Deps: deps}); err != nil {
-		fmt.Fprintf(os.Stderr, "error encoding output: %v\n", err)
-		os.Exit(1)
+		writef(stderr, "error encoding output: %v\n", err)
+		return 1
 	}
+	return 0
+}
+
+// writef writes formatted output; a failed write to a CLI stream is not actionable.
+func writef(w io.Writer, format string, args ...any) {
+	_, _ = fmt.Fprintf(w, format, args...)
+}
+
+func parserNames() []string {
+	names := make([]string, 0, len(parserRegistry))
+	for name := range parserRegistry {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
 }
 
 func autoSelect(path string) parseFunc {
-	switch path {
+	switch filepath.Base(path) {
 	case "go.mod":
 		return parserRegistry["golang-mod"]
 	case "go.sum":

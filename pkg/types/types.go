@@ -1,10 +1,6 @@
 package types
 
-import (
-	"slices"
-
-	xio "github.com/khulnasoft/dep-parser/pkg/x/io"
-)
+import "slices"
 
 type Library struct {
 	ID                 string `json:",omitempty"`
@@ -119,11 +115,6 @@ func (pkgs Packages) Less(i, j int) bool {
 	return pkgs[i].Version < pkgs[j].Version
 }
 func (pkgs Packages) Swap(i, j int) { pkgs[i], pkgs[j] = pkgs[j], pkgs[i] }
-
-type Parser interface {
-	// Parse parses the dependency file
-	Parse(r xio.ReadSeekerAt) ([]Library, []Dependency, error)
-}
 
 type RefType string
 

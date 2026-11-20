@@ -9,7 +9,6 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/khulnasoft/go-version-lib v0.0.0-20261106195240-cca25a6916c4
-	github.com/masahiro331/go-mvn-version v0.0.0-20260119054159-d21fcd2e7de1
 	github.com/mattn/go-shellwords v1.0.16
 	github.com/mitchellh/hashstructure/v2 v2.0.2
 	github.com/rust-secure-code/go-rustaudit v0.0.0-20250226111315-e20ec32e963c

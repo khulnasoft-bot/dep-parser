@@ -17,5 +17,56 @@ jobs:
       with:
         go-version-file: go.mod
 
-    - name: Run unit tests
-      run: go test ./...
+    - name: Run unit tests with coverage
+      run: |
+        mkdir -p .tmp
+        go test -coverprofile=.tmp/unit-coverage-details.txt ./...
+        python3 .github/scripts/coverage.py 80 .tmp/unit-coverage-details.txt
+
+  static-analysis:
+    name: Static Analysis
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: go.mod
+
+    - name: Cache project tools
+      uses: actions/cache@v4
+      with:
+        path: ./.tmp
+        key: ${{ runner.os }}-tools-${{ hashFiles('Makefile') }}
+
+    - name: Bootstrap tools
+      run: make bootstrap-tools
+
+    - name: Check go.mod/go.sum are tidy
+      run: .github/scripts/go-mod-tidy-check.sh
+
+    - name: Run linters
+      run: make lint
+
+    - name: Check licenses
+      run: make check-licenses
+
+  vulncheck:
+    name: Vulnerability Check
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version-file: go.mod
+
+    - name: Install govulncheck
+      run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+    - name: Run govulncheck
+      run: govulncheck ./...

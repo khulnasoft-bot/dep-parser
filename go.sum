@@ -16,8 +16,6 @@ github.com/hashicorp/go-retryablehttp v0.7.8 h1:ylXZWnqa7Lhqpk0L1P1LzDtGcCR0rPVU
 github.com/hashicorp/go-retryablehttp v0.7.8/go.mod h1:rjiScheydd+CxvumBsIrFKlx3iS0jrZ7LvzFGFmuKbw=
 github.com/khulnasoft/go-version-lib v0.0.0-20261106195240-cca25a6916c4 h1:f9bml8yFOL83y+9owKSPxBox9SDNKPcCID9aXMhEIHE=
 github.com/khulnasoft/go-version-lib v0.0.0-20261106195240-cca25a6916c4/go.mod h1:AAhPdmXnG8PdI8U1aUXeJgS4A6zz9i2YLTqOnydKiKo=
-github.com/masahiro331/go-mvn-version v0.0.0-20260119054159-d21fcd2e7de1 h1:XC9v1PB6rMOCTnQIInoFvgSA+vhTCt0wQ7B+Tjpombk=
-github.com/masahiro331/go-mvn-version v0.0.0-20260119054159-d21fcd2e7de1/go.mod h1:jZ3F25l7DbD7l7DcA8aj7eo1EZ84nbzcQHBB4lCSrI8=
 github.com/mattn/go-colorable v0.1.14 h1:9A9LHSqF/7dyVVX6g0U9cwm9pG3kP9gSzcuIPHPsaIE=
 github.com/mattn/go-colorable v0.1.14/go.mod h1:6LmQG8QLFO4G5z1gPvYEzlUgJ2wF+stgPZH1UqBm1s8=
 github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWEY=

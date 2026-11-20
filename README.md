@@ -3,88 +3,124 @@
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Build](https://img.shields.io/github/actions/workflow/status/khulnasoft/dep-parser/test.yml)
-![Version](https://img.shields.io/github/v/release/khulnasoft/dep-parser)
 
 ---
 
 ## 🌟 Features  
-✅ Supports multiple package managers (npm, pnpm, yarn, etc.)  
-✅ Structured project layout inspired by modern package managers  
-✅ Automated test cases & test data  
-✅ Highly extensible & developer-friendly
+✅ Supports ~30 package managers and lockfile formats across ecosystems:
+
+| Ecosystem | Parsers |
+|---|---|
+| Node.js | npm (`package-lock.json`), pnpm, yarn, bun, `package.json` |
+| Go | `go.mod`, `go.sum`, compiled binaries (ELF/Mach-O/PE) |
+| Rust | `Cargo.lock`, compiled binaries |
+| Python | pip, pipenv, poetry, pylock, uv, `pyproject.toml`, installed `METADATA`/`PKG-INFO` |
+| Java/JVM | `pom.xml`, JAR manifests, Gradle & sbt lockfiles |
+| .NET | NuGet (`packages.lock.json`, `.csproj`/`packages.config`, `.deps.json`) |
+| Ruby | Bundler (`Gemfile.lock`), gemspec |
+| PHP | Composer (`composer.lock`) |
+| Swift | `Package.resolved`, CocoaPods |
+| Others | Dart pub, Hex/mix, Julia Manifest, Conan, Conda, WordPress plugins |
+
+✅ Structured project layout: `pkg/parser/<ecosystem>/<tool>`
+✅ Location-aware results (line numbers in lockfiles, file paths in archives)
+✅ Dependency graph output (`DependsOn`) alongside flat package lists
+✅ Automated, testdata-driven tests for every parser
+✅ CLI with parser auto-detection by filename
 
 ## 📦 Installation
 
-### Go Version
 ```bash
 go get github.com/khulnasoft/dep-parser
 ```
 
-### Rust Version
-```bash
-cargo add dep-parser
-```
+Or build the CLI from source:
 
-Or build from source:
 ```bash
-cargo build --release
+go build -o dep-parser ./cmd/dep-parser
 ```
 
 ## 🚀 Usage
 
-### Rust Example
-```rust
-use dep_parser::rust::cargo::parse::CargoParser;
-use dep_parser::types::Parser;
-use std::fs::File;
+### CLI
 
-fn main() {
-    let mut f = File::open("Cargo.lock").expect("Failed to open file");
-    let parser = CargoParser::new();
-    let (libs, deps) = parser.parse(&mut f).expect("Failed to parse");
-    
-    println!("Libraries: {:?}", libs);
-    println!("Dependencies: {:?}", deps);
+```bash
+# Auto-detect the parser from the file name
+dep-parser package-lock.json
+
+# Or select a parser explicitly
+dep-parser -lang golang-mod go.mod
+```
+
+Output is JSON with `packages` and `dependencies` keys.
+
+### Go library
+
+```go
+package main
+
+import (
+	"context"
+	"os"
+
+	"github.com/khulnasoft/dep-parser/pkg/parser/nodejs/npm"
+	xio "github.com/khulnasoft/dep-parser/pkg/x/io"
+)
+
+func main() {
+	f, err := os.Open("package-lock.json")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	rsa, err := xio.NewReadSeekerAt(f)
+	if err != nil {
+		panic(err)
+	}
+
+	pkgs, deps, err := npm.NewParser().Parse(context.Background(), rsa)
+	if err != nil {
+		panic(err)
+	}
+
+	for _, p := range pkgs {
+		println(p.Name, p.Version)
+	}
+	_ = deps
 }
 ```
 
+Each parser lives under `pkg/parser/<ecosystem>/<tool>` and follows the same
+`NewParser(...).Parse(ctx, reader)` convention, returning
+`([]types.Package, []types.Dependency, error)`.
+
 ## 🏗️ Project Structure
 
-This project is now available in both Go and Rust implementations:
-
-- **Go**: Original implementation in `pkg/` directory
-- **Rust**: New implementation in `src/` directory
-
-### Rust Modules
-- `types` - Core data structures (Library, Dependency, Location, etc.)
-- `io` - I/O traits and utilities
-- `utils` - Helper functions for package ID generation, deduplication
-- `rust` - Rust-specific parsers (Cargo.lock, binary)
-- `golang` - Go-specific parsers (go.mod, go.sum, binary)
-- `nodejs` - Node.js parsers (npm, yarn, pnpm)
-- `python` - Python parsers (pip, poetry, requirements)
-- `java` - Java parsers (JAR, POM)
-- Other language parsers (php, ruby, dart, dotnet, conda, gradle, hex, julia, sbt, swift, c, frameworks)
+```
+cmd/dep-parser/        CLI entrypoint (parser registry + auto-detection)
+pkg/
+  types/               Core model: Package, Dependency, Library, Location
+  parser/              One package per lockfile format, grouped by ecosystem
+  x/                   Internal helpers (io, json, http, os, path, ...)
+  licensing/           License file detection
+```
 
 ## 🧪 Testing
 
-### Rust Tests
-```bash
-cargo test
-```
-
-### Go Tests
 ```bash
 go test ./...
 ```
 
-## 📝 Development Status
+Parser tests are table-driven against files in each package's `testdata/`
+directory. The full quality gate (lint, license check, coverage) is available
+via `make`:
 
-- ✅ Core types and utilities converted to Rust
-- ✅ Rust/Cargo parser fully implemented and tested
-- ⚠️ Other language parsers have placeholder implementations (return "not yet implemented" errors)
-- 🔄 Binary parser requires Rust equivalent of go-rustaudit
+```bash
+make bootstrap   # install tooling into ./.tmp
+make all         # static analysis + unit tests
+```
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.  
+Contributions are welcome! Please feel free to submit a Pull Request.
