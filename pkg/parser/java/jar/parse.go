@@ -17,7 +17,6 @@ import (
 	"slices"
 	"strings"
 
-	mavenversion "github.com/khulnasoft/go-version-lib/pkg/mvn"
 	"golang.org/x/net/html/charset"
 	"golang.org/x/xerrors"
 
@@ -26,6 +25,7 @@ import (
 	"github.com/khulnasoft/dep-parser/pkg/types"
 	xio "github.com/khulnasoft/dep-parser/pkg/x/io"
 	xos "github.com/khulnasoft/dep-parser/pkg/x/os"
+	mavenversion "github.com/khulnasoft/go-version-lib/pkg/mvn"
 )
 
 var (

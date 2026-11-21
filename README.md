@@ -26,7 +26,12 @@
 ✅ Location-aware results (line numbers in lockfiles, file paths in archives)
 ✅ Dependency graph output (`DependsOn`) alongside flat package lists
 ✅ Automated, testdata-driven tests for every parser
-✅ CLI with parser auto-detection by filename
+✅ **SBOM export** — CycloneDX 1.5 and SPDX 2.3 JSON (`-o cyclonedx|spdx`)
+✅ **Recursive scanning** — `dep-parser scan <dir>` auto-detects lockfiles by name and content (ELF/Mach-O/PE/JAR magic)
+✅ **Package URL (purl) enrichment** for every ecosystem
+✅ **License resolution** from npm, PyPI, and Maven Central (`-enrich`)
+✅ **Dependency graph utilities** — transitive closure, affected-by, shortest paths (`pkg/graph`)
+✅ Fuzz tests for representative parsers (`go test -fuzz=FuzzParse ./...`)
 
 ## 📦 Installation
 
@@ -50,9 +55,20 @@ dep-parser package-lock.json
 
 # Or select a parser explicitly
 dep-parser -lang golang-mod go.mod
+
+# SBOM output
+dep-parser -o cyclonedx package-lock.json > sbom.cdx.json
+dep-parser -o spdx go.mod > sbom.spdx.json
+
+# Recursively scan a project for all lockfiles/binaries
+dep-parser scan ./my-project
+
+# Resolve missing licenses from public registries
+dep-parser -enrich package-lock.json
 ```
 
-Output is JSON with `packages` and `dependencies` keys.
+Output formats: `json` (default), `cyclonedx`, `spdx`. Scan results include
+per-file parser, packages, dependency edges, and per-file errors.
 
 ### Go library
 
@@ -98,10 +114,16 @@ Each parser lives under `pkg/parser/<ecosystem>/<tool>` and follows the same
 ## 🏗️ Project Structure
 
 ```
-cmd/dep-parser/        CLI entrypoint (parser registry + auto-detection)
+cmd/dep-parser/        CLI entrypoint (registry, scan, SBOM output)
 pkg/
   types/               Core model: Package, Dependency, Library, Location
   parser/              One package per lockfile format, grouped by ecosystem
+  parsers/             Canonical parser registry + LangType metadata
+  detect/              Filename + magic-byte parser detection
+  scan/                Recursive directory scanner
+  sbom/                CycloneDX 1.5 and SPDX 2.3 exporters
+  enrich/              purl generation + registry license resolution
+  graph/               Dependency graph utils (transitive, paths, roots)
   x/                   Internal helpers (io, json, http, os, path, ...)
   licensing/           License file detection
 ```

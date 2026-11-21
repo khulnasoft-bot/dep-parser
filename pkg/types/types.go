@@ -151,6 +151,7 @@ const (
 	NuGet      LangType = "nuget"
 	Composer   LangType = "composer"
 	Poetry     LangType = "poetry"
+	Pipenv     LangType = "pipenv"
 	PyLock     LangType = "pylock"
 	Bun        LangType = "bun"
 	Uv         LangType = "uv"

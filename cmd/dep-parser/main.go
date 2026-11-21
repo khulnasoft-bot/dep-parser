@@ -8,197 +8,16 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"sort"
 
-	"github.com/khulnasoft/dep-parser/pkg/parser/c/conan"
-	"github.com/khulnasoft/dep-parser/pkg/parser/conda/meta"
-	"github.com/khulnasoft/dep-parser/pkg/parser/dart/pub"
-	"github.com/khulnasoft/dep-parser/pkg/parser/dotnet/core_deps"
-	gobinary "github.com/khulnasoft/dep-parser/pkg/parser/golang/binary"
-	"github.com/khulnasoft/dep-parser/pkg/parser/golang/mod"
-	"github.com/khulnasoft/dep-parser/pkg/parser/golang/sum"
-	gradlelock "github.com/khulnasoft/dep-parser/pkg/parser/gradle/lockfile"
-	"github.com/khulnasoft/dep-parser/pkg/parser/hex/mix"
-	"github.com/khulnasoft/dep-parser/pkg/parser/java/pom"
-	juliamanifest "github.com/khulnasoft/dep-parser/pkg/parser/julia/manifest"
-	"github.com/khulnasoft/dep-parser/pkg/parser/nodejs/bun"
-	"github.com/khulnasoft/dep-parser/pkg/parser/nodejs/npm"
-	"github.com/khulnasoft/dep-parser/pkg/parser/nodejs/packagejson"
-	"github.com/khulnasoft/dep-parser/pkg/parser/nodejs/pnpm"
-	"github.com/khulnasoft/dep-parser/pkg/parser/nodejs/yarn"
-	"github.com/khulnasoft/dep-parser/pkg/parser/nuget/config"
-	"github.com/khulnasoft/dep-parser/pkg/parser/nuget/lock"
-	"github.com/khulnasoft/dep-parser/pkg/parser/nuget/packagesprops"
-	"github.com/khulnasoft/dep-parser/pkg/parser/php/composer"
-	"github.com/khulnasoft/dep-parser/pkg/parser/python/packaging"
-	"github.com/khulnasoft/dep-parser/pkg/parser/python/pip"
-	"github.com/khulnasoft/dep-parser/pkg/parser/python/pipenv"
-	"github.com/khulnasoft/dep-parser/pkg/parser/python/poetry"
-	"github.com/khulnasoft/dep-parser/pkg/parser/python/pylock"
-	"github.com/khulnasoft/dep-parser/pkg/parser/python/pyproject"
-	"github.com/khulnasoft/dep-parser/pkg/parser/python/uv"
-	"github.com/khulnasoft/dep-parser/pkg/parser/ruby/bundler"
-	"github.com/khulnasoft/dep-parser/pkg/parser/ruby/gemspec"
-	rustbinary "github.com/khulnasoft/dep-parser/pkg/parser/rust/binary"
-	"github.com/khulnasoft/dep-parser/pkg/parser/rust/cargo"
-	sbtlock "github.com/khulnasoft/dep-parser/pkg/parser/sbt/lockfile"
-	"github.com/khulnasoft/dep-parser/pkg/parser/swift/cocoapods"
-	"github.com/khulnasoft/dep-parser/pkg/parser/swift/swift"
+	"github.com/khulnasoft/dep-parser/pkg/detect"
+	"github.com/khulnasoft/dep-parser/pkg/enrich"
+	"github.com/khulnasoft/dep-parser/pkg/parsers"
+	"github.com/khulnasoft/dep-parser/pkg/sbom"
+	"github.com/khulnasoft/dep-parser/pkg/scan"
+	"github.com/khulnasoft/dep-parser/pkg/types"
 	"github.com/khulnasoft/dep-parser/pkg/version/app"
 	xio "github.com/khulnasoft/dep-parser/pkg/x/io"
 )
-
-type parseFunc func(context.Context, xio.ReadSeekerAt) (any, any, error)
-
-var parserRegistry = map[string]parseFunc{
-	"conan": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, err := conan.NewParser().Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"conda-meta": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, err := meta.NewParser().Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"dart-pub": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, err := pub.NewParser(false).Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"dotnet": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, err := core_deps.NewParser().Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"golang-binary": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, err := gobinary.NewParser().Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"golang-mod": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, _, err := mod.NewParser(false, false).Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"golang-sum": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, err := sum.NewParser().Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"gradle": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, err := gradlelock.NewParser().Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"hex-mix": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, err := mix.NewParser().Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"java-pom": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, err := pom.NewParser("").Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"julia": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, err := juliamanifest.NewParser().Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"nodejs-bun": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, err := bun.NewParser().Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"nodejs-npm": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, err := npm.NewParser().Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"nodejs-pkg": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkg, err := packagejson.NewParser().Parse(r)
-		if err != nil {
-			return nil, nil, err
-		}
-		return []any{pkg}, nil, nil
-	},
-	"nodejs-pnpm": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, err := pnpm.NewParser().Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"nodejs-yarn": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, _, err := yarn.NewParser().Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"nuget-config": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, err := config.NewParser().Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"nuget-lock": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, err := lock.NewParser().Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"nuget-props": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, err := packagesprops.NewParser().Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"php-composer": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, err := composer.NewParser().Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"python-pkg": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, err := packaging.NewParser().Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"python-pip": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, err := pip.NewParser(false).Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"python-pipenv": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, err := pipenv.NewParser().Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"python-poetry": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, err := poetry.NewParser().Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"python-pylock": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, err := pylock.NewParser().Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"python-pyproject": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		conf, err := pyproject.NewParser().Parse(r)
-		if err != nil {
-			return nil, nil, err
-		}
-		return []any{conf}, nil, nil
-	},
-	"python-uv": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, err := uv.NewParser().Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"ruby-bundler": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, err := bundler.NewParser().Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"ruby-gemspec": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, err := gemspec.NewParser().Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"rust-binary": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, err := rustbinary.NewParser().Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"rust-cargo": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, err := cargo.NewParser().Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"sbt": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, err := sbtlock.NewParser().Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"swift-cocoapods": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, err := cocoapods.NewParser().Parse(ctx, r)
-		return pkgs, deps, err
-	},
-	"swift": func(ctx context.Context, r xio.ReadSeekerAt) (any, any, error) {
-		pkgs, deps, err := swift.NewParser().Parse(ctx, r)
-		return pkgs, deps, err
-	},
-}
-
-type output struct {
-	Packages any `json:"packages,omitempty"`
-	Deps     any `json:"dependencies,omitempty"`
-}
 
 func main() {
 	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
@@ -208,6 +27,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("dep-parser", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	lang := fs.String("lang", "", "parser to use (e.g. nodejs-npm, python-pyproject, golang-mod)")
+	format := fs.String("o", "json", "output format: json, cyclonedx, or spdx")
+	enrichLicenses := fs.Bool("enrich", false, "resolve missing licenses from public registries (npm, PyPI, Maven Central)")
 	version := fs.Bool("version", false, "print version and exit")
 	if err := fs.Parse(args); err != nil {
 		return 2
@@ -220,119 +41,301 @@ func run(args []string, stdout, stderr io.Writer) int {
 
 	rest := fs.Args()
 	if len(rest) == 0 {
-		writef(stderr, "Usage: dep-parser [-lang <parser>] <file>\n")
-		writef(stderr, "Available parsers:\n")
-		for _, name := range parserNames() {
-			writef(stderr, "  %s\n", name)
-		}
-		return 1
-	}
-
-	filePath := rest[0]
-
-	var parse parseFunc
-	if *lang != "" {
-		var ok bool
-		parse, ok = parserRegistry[*lang]
-		if !ok {
-			writef(stderr, "unknown parser: %s\n", *lang)
-			writef(stderr, "Available parsers:\n")
-			for _, name := range parserNames() {
-				writef(stderr, "  %s\n", name)
-			}
-			return 1
-		}
-	} else {
-		parse = autoSelect(filePath)
-	}
-	if parse == nil {
-		writef(stderr, "could not auto-select parser for %s\n", filePath)
-		writef(stderr, "Use -lang to specify a parser explicitly.\n")
-		return 1
-	}
-
-	f, err := os.Open(filePath)
-	if err != nil {
-		writef(stderr, "error opening %s: %v\n", filePath, err)
-		return 1
-	}
-	defer func() {
-		if err := f.Close(); err != nil {
-			writef(stderr, "error closing %s: %v\n", filePath, err)
-		}
-	}()
-
-	rsa, err := xio.NewReadSeekerAt(f)
-	if err != nil {
-		writef(stderr, "error wrapping reader: %v\n", err)
+		usage(stderr)
 		return 1
 	}
 
 	ctx := context.Background()
-	pkgs, deps, err := parse(ctx, rsa)
+
+	// scan subcommand: dep-parser scan <dir>
+	if rest[0] == "scan" {
+		if len(rest) < 2 {
+			writef(stderr, "Usage: dep-parser scan <dir> [-o json|cyclonedx|spdx] [-enrich]\n")
+			return 1
+		}
+		return runScan(ctx, rest[1], *format, *enrichLicenses, stdout, stderr)
+	}
+
+	// single-file mode: dep-parser [-lang X] [-o fmt] <file>
+	filePath := rest[0]
+	candidates, errMsg := parserCandidates(filePath, *lang, stderr)
+	if errMsg != "" {
+		writef(stderr, "%s\n", errMsg)
+		return 1
+	}
+
+	pkgsAny, depsAny, parserName, err := parseFile(ctx, filePath, candidates)
 	if err != nil {
 		writef(stderr, "error parsing %s: %v\n", filePath, err)
 		return 1
 	}
 
-	enc := json.NewEncoder(stdout)
-	enc.SetIndent("", "  ")
-	if err := enc.Encode(output{Packages: pkgs, Deps: deps}); err != nil {
-		writef(stderr, "error encoding output: %v\n", err)
+	// stamp LangType so downstream consumers (purl, SBOM) know the ecosystem
+	pkgs := toPackages(pkgsAny)
+	for i := range pkgs {
+		if pkgs[i].LangType == "" {
+			pkgs[i].LangType = parsers.Registry[parserName].Lang
+		}
+	}
+	deps := toDependencies(depsAny)
+
+	if *enrichLicenses {
+		enrichPackages(ctx, pkgs, parsers.Registry[parserName].Lang, stderr)
+	}
+
+	return writeOutput(stdout, stderr, *format, filePath, pkgsAny, depsAny, pkgs, deps, parserName)
+}
+
+func usage(w io.Writer) {
+	writef(w, "Usage: dep-parser [-lang <parser>] [-o json|cyclonedx|spdx] [-enrich] <file>\n")
+	writef(w, "       dep-parser scan [-o json|cyclonedx|spdx] [-enrich] <dir>\n")
+	writef(w, "       dep-parser -version\n")
+	writef(w, "Available parsers:\n")
+	for _, name := range parsers.Names() {
+		writef(w, "  %s\n", name)
+	}
+}
+
+// parserCandidates resolves which parser names to try for a file.
+func parserCandidates(filePath, lang string, stderr io.Writer) ([]string, string) {
+	if lang != "" {
+		if _, ok := parsers.Registry[lang]; !ok {
+			return nil, fmt.Sprintf("unknown parser: %s\nAvailable parsers:\n%s", lang, parserList())
+		}
+		return []string{lang}, ""
+	}
+	f, err := os.Open(filePath)
+	if err != nil {
+		return nil, fmt.Sprintf("error opening %s: %v", filePath, err)
+	}
+	defer func() { _ = f.Close() }()
+	header := make([]byte, 512)
+	n, _ := f.Read(header)
+	candidates := detect.Detect(filePath, header[:n])
+	if len(candidates) == 0 {
+		return nil, fmt.Sprintf("could not auto-select parser for %s\nUse -lang to specify a parser explicitly.", filePath)
+	}
+	return candidates, ""
+}
+
+func parserList() string {
+	var b []byte
+	for _, name := range parsers.Names() {
+		b = append(b, "  "...)
+		b = append(b, name...)
+		b = append(b, '\n')
+	}
+	return string(b)
+}
+
+// parseFile tries each candidate parser in order until one succeeds.
+func parseFile(ctx context.Context, filePath string, candidates []string) (pkgsAny, depsAny any, parserName string, err error) {
+	f, err := os.Open(filePath)
+	if err != nil {
+		return nil, nil, "", err
+	}
+	defer func() { _ = f.Close() }()
+
+	var lastErr error
+	for _, name := range candidates {
+		entry, ok := parsers.Registry[name]
+		if !ok {
+			continue
+		}
+		if _, err := f.Seek(0, io.SeekStart); err != nil {
+			return nil, nil, "", err
+		}
+		rsa, err := xio.NewReadSeekerAt(f)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		pkgsAny, depsAny, err = entry.Parse(ctx, rsa)
+		if err != nil {
+			lastErr = err
+			continue
+		}
+		return pkgsAny, depsAny, name, nil
+	}
+	return nil, nil, "", lastErr
+}
+
+// toPackages normalizes []types.Package / types.Packages.
+func toPackages(v any) []types.Package {
+	switch p := v.(type) {
+	case []types.Package:
+		return p
+	case types.Packages:
+		return []types.Package(p)
+	default:
+		return nil
+	}
+}
+
+// toDependencies normalizes []types.Dependency / types.Dependencies.
+func toDependencies(v any) []types.Dependency {
+	switch d := v.(type) {
+	case []types.Dependency:
+		return d
+	case types.Dependencies:
+		return []types.Dependency(d)
+	default:
+		return nil
+	}
+}
+
+// enrichPackages fills in missing licenses via public registries.
+func enrichPackages(ctx context.Context, pkgs []types.Package, lang types.LangType, stderr io.Writer) {
+	resolver := enrich.NewRegistry(nil)
+	for i := range pkgs {
+		if len(pkgs[i].Licenses) > 0 {
+			continue
+		}
+		lic, err := resolver.License(ctx, pkgs[i], lang)
+		if err != nil {
+			writef(stderr, "warning: license lookup failed for %s: %v\n", pkgs[i].Name, err)
+			continue
+		}
+		if lic != "" {
+			pkgs[i].Licenses = []string{lic}
+		}
+	}
+}
+
+// writeOutput emits the parse result in the requested format.
+func writeOutput(stdout, stderr io.Writer, format, filePath string, pkgsAny, depsAny any, pkgs []types.Package, deps []types.Dependency, parserName string) int {
+	switch format {
+	case "json", "":
+		enc := json.NewEncoder(stdout)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(output{Packages: pkgsAny, Deps: depsAny}); err != nil {
+			writef(stderr, "error encoding output: %v\n", err)
+			return 1
+		}
+		return 0
+	case "cyclonedx", "spdx":
+		if pkgs == nil {
+			writef(stderr, "format %q requires a lockfile parser (got config-style output from %s)\n", format, parserName)
+			return 1
+		}
+		lang := parsers.Registry[parserName].Lang
+		meta := sbom.Metadata{
+			Name:        filepath.Base(filePath),
+			ToolVersion: app.Version(),
+			Lang:        lang,
+		}
+		out, err := sbom.Marshal(sbom.Format(format), pkgs, deps, meta)
+		if err != nil {
+			writef(stderr, "error generating %s: %v\n", format, err)
+			return 1
+		}
+		if _, err := stdout.Write(append(out, '\n')); err != nil {
+			writef(stderr, "error writing output: %v\n", err)
+			return 1
+		}
+		return 0
+	default:
+		writef(stderr, "unknown output format: %s (want json, cyclonedx, or spdx)\n", format)
 		return 1
 	}
-	return 0
+}
+
+// runScan handles `dep-parser scan <dir>`.
+func runScan(ctx context.Context, dir, format string, doEnrich bool, stdout, stderr io.Writer) int {
+	rep, err := scan.Scan(ctx, dir, scan.Options{})
+	if err != nil {
+		writef(stderr, "error scanning %s: %v\n", dir, err)
+		return 1
+	}
+
+	if doEnrich {
+		resolver := enrich.NewRegistry(nil)
+		for _, res := range rep.Results {
+			for i := range res.Packages {
+				if len(res.Packages[i].Licenses) > 0 {
+					continue
+				}
+				lic, err := resolver.License(ctx, res.Packages[i], res.Lang)
+				if err == nil && lic != "" {
+					res.Packages[i].Licenses = []string{lic}
+				}
+			}
+		}
+	}
+
+	switch format {
+	case "json", "":
+		results := make([]scanResultJSON, 0, len(rep.Results))
+		for _, res := range rep.Results {
+			results = append(results, scanResultJSON{
+				Path:         res.Path,
+				Parser:       res.Parser,
+				Lang:         res.Lang,
+				Packages:     res.Packages,
+				Dependencies: res.Dependencies,
+				Config:       res.Config,
+			})
+		}
+		enc := json.NewEncoder(stdout)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(scanReportJSON{
+			Files:   rep.Files,
+			Results: results,
+			Errors:  rep.Errors,
+		}); err != nil {
+			writef(stderr, "error encoding output: %v\n", err)
+			return 1
+		}
+		return 0
+	case "cyclonedx", "spdx":
+		pkgs := rep.AllPackages()
+		deps := rep.AllDependencies()
+		if len(pkgs) == 0 {
+			writef(stderr, "no packages found under %s\n", dir)
+			return 1
+		}
+		meta := sbom.Metadata{
+			Name:        filepath.Base(dir),
+			ToolVersion: app.Version(),
+		}
+		out, err := sbom.Marshal(sbom.Format(format), pkgs, deps, meta)
+		if err != nil {
+			writef(stderr, "error generating %s: %v\n", format, err)
+			return 1
+		}
+		if _, err := stdout.Write(append(out, '\n')); err != nil {
+			writef(stderr, "error writing output: %v\n", err)
+			return 1
+		}
+		return 0
+	default:
+		writef(stderr, "unknown output format: %s (want json, cyclonedx, or spdx)\n", format)
+		return 1
+	}
+}
+
+// scanReportJSON is the JSON shape for scan results.
+type scanReportJSON struct {
+	Files   int              `json:"files"`
+	Results []scanResultJSON `json:"results"`
+	Errors  []scan.FileError `json:"errors,omitempty"`
+}
+
+type scanResultJSON struct {
+	Path         string             `json:"path"`
+	Parser       string             `json:"parser"`
+	Lang         types.LangType     `json:"lang,omitempty"`
+	Packages     []types.Package    `json:"packages,omitempty"`
+	Dependencies []types.Dependency `json:"dependencies,omitempty"`
+	Config       any                `json:"config,omitempty"`
+}
+
+type output struct {
+	Packages any `json:"packages,omitempty"`
+	Deps     any `json:"dependencies,omitempty"`
 }
 
 // writef writes formatted output; a failed write to a CLI stream is not actionable.
 func writef(w io.Writer, format string, args ...any) {
 	_, _ = fmt.Fprintf(w, format, args...)
-}
-
-func parserNames() []string {
-	names := make([]string, 0, len(parserRegistry))
-	for name := range parserRegistry {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-	return names
-}
-
-func autoSelect(path string) parseFunc {
-	switch filepath.Base(path) {
-	case "go.mod":
-		return parserRegistry["golang-mod"]
-	case "go.sum":
-		return parserRegistry["golang-sum"]
-	case "package-lock.json":
-		return parserRegistry["nodejs-npm"]
-	case "package.json":
-		return parserRegistry["nodejs-pkg"]
-	case "pnpm-lock.yaml":
-		return parserRegistry["nodejs-pnpm"]
-	case "yarn.lock":
-		return parserRegistry["nodejs-yarn"]
-	case "Pipfile":
-		return parserRegistry["python-pipenv"]
-	case "pyproject.toml":
-		return parserRegistry["python-pyproject"]
-	case "poetry.lock":
-		return parserRegistry["python-poetry"]
-	case "uv.lock":
-		return parserRegistry["python-uv"]
-	case "Cargo.lock":
-		return parserRegistry["rust-cargo"]
-	case "pom.xml":
-		return parserRegistry["java-pom"]
-	case "composer.lock":
-		return parserRegistry["php-composer"]
-	case "Gemfile.lock":
-		return parserRegistry["ruby-bundler"]
-	case "Package.resolved":
-		return parserRegistry["swift"]
-	case "requirements.txt":
-		return parserRegistry["python-pip"]
-	default:
-		return nil
-	}
 }
